@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fresh Harvest Food Store</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+    body { background: #fdfaf5; color: #333; }
+
+    header {
+      background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      color: #fff;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 1.8rem; }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin-left: 25px;
+      font-weight: 500;
+    }
+    nav a:hover { text-decoration: underline; }
+
+    .hero {
+      text-align: center;
+      padding: 80px 20px;
+      background: #fff3e6;
+    }
+    .hero h2 { font-size: 2.5rem; margin-bottom: 15px; color: #ff5e3a; }
+    .hero p { font-size: 1.1rem; margin-bottom: 30px; color: #555; }
+    .btn {
+      background: #ff5e3a;
+      color: #fff;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 30px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn:hover { background: #e64a2e; }
+
+    .products {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 60px 20px;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      width: 260px;
+      padding: 20px;
+      text-align: center;
+    }
+    .card h3 { margin: 15px 0 10px; color: #ff5e3a; }
+    .card p { color: #666; font-size: 0.95rem; }
+    .emoji { font-size: 3rem; }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      background: #333;
+      color: #ccc;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🍎 Fresh Harvest</h1>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Products</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h2>Farm-Fresh Groceries, Delivered Daily</h2>
+    <p>Locally sourced fruits, vegetables, and pantry staples — straight to your door.</p>
+    <a href="#" class="btn">Shop Now</a>
+  </section>
+
+  <section class="products">
+    <div class="card">
+      <div class="emoji">🥦</div>
+      <h3>Fresh Vegetables</h3>
+      <p>Handpicked daily from local farms for maximum freshness.</p>
+    </div>
+    <div class="card">
+      <div class="emoji">🍇</div>
+      <h3>Seasonal Fruits</h3>
+      <p>Sweet, juicy, and always in season.</p>
+    </div>
+    <div class="card">
+      <div class="emoji">🥖</div>
+      <h3>Bakery Essentials</h3>
+      <p>Freshly baked bread and pastries every morning.</p>
+    </div>
+  </section>
+
+  <footer>
+    &copy; 2026 Fresh Harvest Food Store. All rights reserved.
+  </footer>
+
+</body>
+</html>

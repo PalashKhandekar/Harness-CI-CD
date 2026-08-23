@@ -4,7 +4,12 @@ pipeline:
   projectIdentifier: YOUR_PROJECT_IDENTIFIER
   orgIdentifier: default
   tags: {}
-
+  properties:
+    ci:
+      codebase:
+        connectorRef: YOUR_GIT_CONNECTOR   # e.g. github/gitlab connector identifier
+        repoName: YOUR_REPO_NAME
+        build: <+input>
   stages:
     - stage:
         name: Build
@@ -31,32 +36,31 @@ pipeline:
                       mkdir -p dist
                       cp index.html dist/
                       tar -czvf foodstore-site.tar.gz -C dist .
-
               - step:
-                  name: Save Artifact
-                  identifier: Save_Artifact
+                  name: Upload Artifact to S3
+                  identifier: Upload_Artifact
                   type: Run
                   spec:
                     shell: Sh
+                    envVariables:
+                      AWS_ACCESS_KEY_ID: <+secrets.getValue("aws_access_key_id")>
+                      AWS_SECRET_ACCESS_KEY: <+secrets.getValue("aws_secret_access_key")>
                     command: |
-                      echo "Artifact ready: foodstore-site.tar.gz"
-
+                      aws s3 cp foodstore-site.tar.gz s3://YOUR_BUCKET_NAME/foodstore-site.tar.gz --region YOUR_REGION
+                      echo "Artifact uploaded: s3://YOUR_BUCKET_NAME/foodstore-site.tar.gz"
     - stage:
         name: Deploy to EC2
         identifier: Deploy_to_EC2
         type: Deployment
         spec:
           deploymentType: Ssh
-
           service:
             serviceRef: foodstore_service
-
           environment:
             environmentRef: production
             deployToAll: false
             infrastructureDefinitions:
               - identifier: ec2_infra
-
           execution:
             steps:
               - step:
@@ -68,7 +72,6 @@ pipeline:
                     onDelegate: false
                     environmentVariables: []
                     outputVariables: []
-
                     commandUnits:
                       - identifier: Stop_Old_Service
                         name: Stop old server
@@ -80,14 +83,12 @@ pipeline:
                             spec:
                               script: |
                                 echo "Nothing to stop for static site, skipping..."
-
                       - identifier: Copy_Artifact
                         name: Copy site files to EC2
                         type: Copy
                         spec:
                           sourceType: Artifact
                           destinationPath: /home/ec2-user/foodstore-site.tar.gz
-
                       - identifier: Extract_And_Deploy
                         name: Extract and deploy to web root
                         type: Script
@@ -102,7 +103,5 @@ pipeline:
                                 echo "Restarting nginx..."
                                 sudo systemctl restart nginx
                                 echo "Deployment complete!"
-
             rollbackSteps: []
-
         tags: {}

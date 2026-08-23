@@ -1,19 +1,15 @@
 pipeline:
   name: food-store-ec2-deploy
   identifier: food_store_ec2_deploy
-  projectIdentifier: YOUR_PROJECT_IDENTIFIER
+  projectIdentifier: foodstore
   orgIdentifier: default
   tags: {}
-  properties:
-    ci:
-      codebase:
-        connectorRef: YOUR_GIT_CONNECTOR   # e.g. github/gitlab connector identifier
-        repoName: YOUR_REPO_NAME
-        build: <+input>
   stages:
+
+    ## ---------------- BUILD STAGE ----------------
     - stage:
-        name: Build and Deploy
-        identifier: Build_and_Deploy
+        name: Build
+        identifier: Build
         type: CI
         spec:
           cloneCodebase: true
@@ -36,32 +32,75 @@ pipeline:
                       mkdir -p dist
                       cp index.html dist/
                       tar -czvf foodstore-site.tar.gz -C dist .
+
               - step:
-                  name: Copy to EC2 and Deploy
-                  identifier: Copy_And_Deploy
+                  name: Save Artifact
+                  identifier: Save_Artifact
                   type: Run
                   spec:
                     shell: Sh
-                    envVariables:
-                      EC2_HOST: <+secrets.getValue("ec2_host")>
-                      EC2_USER: <+secrets.getValue("ec2_user")>
-                      EC2_SSH_KEY: <+secrets.getValue("ec2_ssh_key")>
                     command: |
-                      echo "Setting up SSH key..."
-                      echo "$EC2_SSH_KEY" > key.pem
-                      chmod 600 key.pem
+                      echo "Artifact ready: foodstore-site.tar.gz"
+                  # In a real setup, publish this to S3/Nexus/Artifactory
+                  # or use Harness's built-in "Upload Artifact" step here.
 
-                      echo "Copying artifact to EC2..."
-                      scp -o StrictHostKeyChecking=no -i key.pem \
-                        foodstore-site.tar.gz "$EC2_USER@$EC2_HOST:/home/$EC2_USER/foodstore-site.tar.gz"
+    ## ---------------- DEPLOY TO EC2 ----------------
+    - stage:
+        name: Deploy to EC2
+        identifier: Deploy_to_EC2
+        type: Deployment
+        spec:
+          deploymentType: Ssh
+          service:
+            serviceRef: foodstore_service
+          environment:
+            environmentRef: production
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: ec2_infra
+          execution:
+            steps:
+              - step:
+                  name: Deploy Artifact
+                  identifier: Deploy_Artifact
+                  type: Command
+                  timeout: 10m
+                  spec:
+                    onDelegate: false
+                    environmentVariables: []
+                    outputVariables: []
+                    commandUnits:
+                      - identifier: Stop_Old_Service
+                        name: Stop old server (if any)
+                        type: Script
+                        spec:
+                          shell: Bash
+                          source:
+                            type: Inline
+                            spec:
+                              script: |
+                                echo "Nothing to stop for static site, skipping..."
 
-                      echo "Deploying on EC2..."
-                      ssh -o StrictHostKeyChecking=no -i key.pem "$EC2_USER@$EC2_HOST" '
-                        sudo mkdir -p /var/www/foodstore
-                        sudo tar -xzvf /home/'"$EC2_USER"'/foodstore-site.tar.gz -C /var/www/foodstore
-                        echo "Restarting nginx..."
-                        sudo systemctl restart nginx
-                        echo "Deployment complete!"
-                      '
+                      - identifier: Copy_Artifact
+                        name: Copy site files to EC2
+                        type: Copy
+                        spec:
+                          sourceType: Artifact
+                          destinationPath: /home/ec2-user/foodstore-site.tar.gz
 
-                      rm -f key.pem
+                      - identifier: Extract_And_Deploy
+                        name: Extract and deploy to web root
+                        type: Script
+                        spec:
+                          shell: Bash
+                          source:
+                            type: Inline
+                            spec:
+                              script: |
+                                sudo mkdir -p /var/www/foodstore
+                                sudo tar -xzvf /home/ec2-user/foodstore-site.tar.gz -C /var/www/foodstore
+                                echo "Restarting nginx..."
+                                sudo systemctl restart nginx
+                                echo "Deployment complete!"
+            rollbackSteps: []
+        tags: {}

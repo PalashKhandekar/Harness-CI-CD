@@ -1,62 +1,50 @@
-# Food Store CI/CD Pipeline
-
-```yaml
 pipeline:
   name: food-store-ec2-deploy
   identifier: food_store_ec2_deploy
-  projectIdentifier: REPLACE_WITH_YOUR_HARNESS_PROJECT_IDENTIFIER
+  projectIdentifier: YOUR_PROJECT_IDENTIFIER
   orgIdentifier: default
   tags: {}
 
   stages:
-
-    # ---------------- BUILD STAGE ----------------
     - stage:
         name: Build
         identifier: Build
         type: CI
         spec:
           cloneCodebase: true
-
           platform:
             os: Linux
             arch: Amd64
-
           runtime:
             type: Cloud
             spec: {}
-
           execution:
             steps:
-
               - step:
                   name: Package Site
                   identifier: Package_Site
                   type: Run
                   spec:
-                    shell: Bash
+                    shell: Sh
                     command: |
-                      set -e
-
-                      echo "Checking website..."
-                      test -f index.html
-
-                      echo "Packaging website..."
+                      echo "Packaging site..."
                       mkdir -p dist
                       cp index.html dist/
+                      tar -czvf foodstore-site.tar.gz -C dist .
 
-                      tar -czf foodstore-site.tar.gz -C dist .
+              - step:
+                  name: Save Artifact
+                  identifier: Save_Artifact
+                  type: Run
+                  spec:
+                    shell: Sh
+                    command: |
+                      echo "Artifact ready: foodstore-site.tar.gz"
 
-                      echo "Build completed successfully."
-                      ls -lh foodstore-site.tar.gz
-
-
-    # ---------------- DEPLOY TO EC2 ----------------
     - stage:
         name: Deploy to EC2
         identifier: Deploy_to_EC2
         type: Deployment
-
         spec:
           deploymentType: Ssh
 
@@ -66,103 +54,55 @@ pipeline:
           environment:
             environmentRef: production
             deployToAll: false
-
             infrastructureDefinitions:
               - identifier: ec2_infra
 
           execution:
             steps:
-
               - step:
-                  name: Deploy Website
-                  identifier: Deploy_Website
+                  name: Deploy Artifact
+                  identifier: Deploy_Artifact
                   type: Command
                   timeout: 10m
-
                   spec:
                     onDelegate: false
-
                     environmentVariables: []
                     outputVariables: []
 
                     commandUnits:
-
-                      - identifier: Download_Site
-                        name: Download latest website
+                      - identifier: Stop_Old_Service
+                        name: Stop old server
                         type: Script
-
                         spec:
                           shell: Bash
-
                           source:
                             type: Inline
-
                             spec:
                               script: |
-                                set -e
+                                echo "Nothing to stop for static site, skipping..."
 
-                                echo "Downloading website from GitHub..."
+                      - identifier: Copy_Artifact
+                        name: Copy site files to EC2
+                        type: Copy
+                        spec:
+                          sourceType: Artifact
+                          destinationPath: /home/ec2-user/foodstore-site.tar.gz
 
+                      - identifier: Extract_And_Deploy
+                        name: Extract and deploy to web root
+                        type: Script
+                        spec:
+                          shell: Bash
+                          source:
+                            type: Inline
+                            spec:
+                              script: |
                                 sudo mkdir -p /var/www/foodstore
-
-                                sudo curl -L \
-                                  -o /tmp/index.html \
-                                  https://raw.githubusercontent.com/PalashKhandekar/Harness-CI-CD/main/index.html
-
-                                sudo cp /tmp/index.html /var/www/foodstore/index.html
-
-                                echo "Website copied successfully."
-
-                      - identifier: Configure_Nginx
-                        name: Configure Nginx
-                        type: Script
-
-                        spec:
-                          shell: Bash
-
-                          source:
-                            type: Inline
-
-                            spec:
-                              script: |
-                                set -e
-
-                                echo "Checking Nginx..."
-
-                                if ! command -v nginx >/dev/null 2>&1; then
-                                  echo "Nginx is not installed."
-                                  exit 1
-                                fi
-
-                                echo "Testing Nginx configuration..."
-                                sudo nginx -t
-
-                                echo "Restarting Nginx..."
+                                sudo tar -xzvf /home/ec2-user/foodstore-site.tar.gz -C /var/www/foodstore
+                                echo "Restarting nginx..."
                                 sudo systemctl restart nginx
-
-                                echo "Nginx restarted successfully."
-
-                      - identifier: Verify_Deployment
-                        name: Verify deployment
-                        type: Script
-
-                        spec:
-                          shell: Bash
-
-                          source:
-                            type: Inline
-
-                            spec:
-                              script: |
-                                set -e
-
-                                echo "Verifying deployment..."
-
-                                test -f /var/www/foodstore/index.html
-
-                                echo "Deployment successful."
-                                echo "Website deployed to /var/www/foodstore/index.html"
+                                echo "Deployment complete!"
 
             rollbackSteps: []
 
-        
+        tags: {}

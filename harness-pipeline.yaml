@@ -1,12 +1,11 @@
 pipeline:
   name: food-store-ec2-deploy
   identifier: food_store_ec2_deploy
-  projectIdentifier: foodstore
+  projectIdentifier: YOUR_PROJECT_IDENTIFIER
   orgIdentifier: default
   tags: {}
-  stages:
 
-    ## ---------------- BUILD STAGE ----------------
+  stages:
     - stage:
         name: Build
         identifier: Build
@@ -41,23 +40,23 @@ pipeline:
                     shell: Sh
                     command: |
                       echo "Artifact ready: foodstore-site.tar.gz"
-                  # In a real setup, publish this to S3/Nexus/Artifactory
-                  # or use Harness's built-in "Upload Artifact" step here.
 
-    ## ---------------- DEPLOY TO EC2 ----------------
     - stage:
         name: Deploy to EC2
         identifier: Deploy_to_EC2
         type: Deployment
         spec:
           deploymentType: Ssh
+
           service:
             serviceRef: foodstore_service
+
           environment:
             environmentRef: production
             deployToAll: false
             infrastructureDefinitions:
               - identifier: ec2_infra
+
           execution:
             steps:
               - step:
@@ -69,9 +68,10 @@ pipeline:
                     onDelegate: false
                     environmentVariables: []
                     outputVariables: []
+
                     commandUnits:
                       - identifier: Stop_Old_Service
-                        name: Stop old server (if any)
+                        name: Stop old server
                         type: Script
                         spec:
                           shell: Bash
@@ -102,5 +102,7 @@ pipeline:
                                 echo "Restarting nginx..."
                                 sudo systemctl restart nginx
                                 echo "Deployment complete!"
+
             rollbackSteps: []
+
         tags: {}
